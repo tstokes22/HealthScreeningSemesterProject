@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Health Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+    <div class="header-container">
+        <h1>Health Screening Login</h1>
+    </div>
+    </header>
+    <div class="container">
+        <h2>Patient Login</h2>
+        <div class="login-container">
+            <div id="message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Username" required>
+                    <label class="remember-me" for="remember-username">
+                        <input type="checkbox" id="remember-username" />
+                        Remember username
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+                
+                <div class="form-options">
+                    <a href="forgot-password.html">Forgot password</a>
+                </div>
+                
+                <button type="submit" class="submit-btn">Sign In</button>
+            </form>
+            
+            <div class="signup-link" id="register-link">
+                Don't have an account? <a href="register.html">Register</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        fetch('api/check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.logged_in) {
+                    window.location.href = 'dashboard.html';
+                }
+            })
+            .catch(error => console.error('Error checking session:', error));
+        
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('api/login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('message');
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="success">Login successful! Redirecting...</div>';
+                    window.location.href = data.redirect;
+                } else {
+                    messageDiv.innerHTML = '<div class="error">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('message').innerHTML = '<div class="error">Error logging in. Please try again.</div>';
+                console.error('Error:', error);
+            });
+        });
+
+        // check if username is stored
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUsername = localStorage.getItem('rememberedUsername');
+            if (savedUsername) {
+                document.getElementById('username').value = savedUsername;
+                document.getElementById('remember-username').checked = true;
+            }
+        });
+
+        // save or remove username
+        document.querySelector('form').addEventListener('submit', function() {
+            const username = document.getElementById('username').value;
+            const remember = document.getElementById('remember-username').checked;
+            if (remember) {
+                localStorage.setItem('rememberedUsername', username);
+            } else {
+                localStorage.removeItem('rememberedUsername');
+            }
+        });
+    </script>
+</body>
+</html> 

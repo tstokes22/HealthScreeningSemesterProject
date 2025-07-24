@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Health Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Health Screening Login</h1>
+        </div>
+    </header>
+    <div class="container">
+        <h2>Register</h2>
+        <div class="login-container">
+
+            <div id="message"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="username" name="username" placeholder="Username" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="email" id="email" name="email" placeholder="Email address" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
+                </div>
+                
+                <div class="form-group">
+                    <select id="secret_question" name="secret_question" required>
+                        <option value="" disabled selected>Select a secret question...</option>
+                        <option value="What is your favorite color?">What is your favorite color?</option>
+                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="In what city were you born?">In what city were you born?</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="secret_answer" name="secret_answer" placeholder="Your Secret Answer" required>
+                </div>
+
+                <button type="submit" class="submit-btn">Sign Up</button>
+            </form>
+            
+            <p class="signup-link">
+                Already have an account? <a href="index.html">Sign in</a>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const messageDiv = document.getElementById('message');
+            
+            if (password !== confirmPassword) {
+                messageDiv.innerHTML = '<div class="error">Passwords do not match!</div>';
+                return;
+            }
+            
+            if (password.length < 6) {
+                messageDiv.innerHTML = '<div class="error">Password must be at least 6 characters long.</div>';
+                return;
+            }
+            
+            const formData = new FormData(this);
+            
+            fetch('api/register.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="success">Registration successful! Redirecting to login...</div>';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = '<div class="error">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                messageDiv.innerHTML = '<div class="error">Error registering. Please try again.</div>';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html> 

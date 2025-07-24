@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <h1>Health Screening Admin Dashboard</h1>
+    </div>
+  </header>
+  
+  <div class="admin-container">
+    <div class="admin-header">
+      <h2 class="admin-title">Welcome, Admin</h2>
+      <a href="api/logout.php" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="admin-controls">
+      <button id="loadUsersBtn" class="admin-btn">View All Users</button>
+      <button id="toggleInsertFormBtn" class="admin-btn secondary">Insert New User</button>
+      <a href="analytics_dash.html" class="admin-btn">Analytics Dashboard</a>
+    </div>
+
+    <div id="userTableContainer" class="content-section" hidden>
+      <!-- User table will be loaded here -->
+    </div>
+
+    <div id="insertUserFormContainer" class="content-section" hidden>
+      <h2>Insert New User</h2>
+      <form id="insertUserForm" class="insert-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="secret_question">Secret Question</label>
+          <input type="text" id="secret_question" name="secret_question" required>
+        </div>
+        <div class="form-group">
+          <label for="secret_answer">Secret Answer</label>
+          <input type="text" id="secret_answer" name="secret_answer" required>
+        </div>
+        <button type="submit" class="submit-btn">Submit</button>
+      </form>
+      <div id="insertResult"></div>
+    </div>
+  </div>
+
+  <script>
+    let usersVisible = false;
+    let formVisible = false;
+
+    fetch('api/check_session.php')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.logged_in || data.is_admin == '0') {
+          window.location.href = 'index.html';
+        }
+      });
+
+    document.getElementById('loadUsersBtn').addEventListener('click', () => {
+      const container = document.getElementById("userTableContainer");
+      usersVisible = !usersVisible;
+
+      if (usersVisible) {
+        fetch('api/view_users.php')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const users = data.users;
+              let html = "<h2>All Users</h2><table class='user-table'><tr><th>ID</th><th>Username</th><th>Email</th><th>Created At</th><th>Actions</th></tr>";
+              users.forEach(user => {
+                html += `<tr id="user-${user.id}">
+                  <td>${user.id}</td>
+                  <td id="username-${user.id}">${user.username}</td>
+                  <td id="email-${user.id}">${user.email}</td>
+                  <td>${user.created_at}</td>
+                  <td>
+                    <button class="action-btn" onclick="showEdit(${user.id})">Edit</button>
+                    <button class="action-btn delete" onclick="deleteUser(${user.id})">Delete</button>
+                  </td>
+                </tr>`;
+              });
+              html += "</table>";
+              container.innerHTML = html;
+              container.hidden = false;
+              document.getElementById('loadUsersBtn').textContent = "Hide Users";
+            } else {
+              container.innerHTML = `<p>Error: ${data.message}</p>`;
+              container.hidden = false;
+            }
+          });
+      } else {
+        container.hidden = true;
+        document.getElementById('loadUsersBtn').textContent = "View All Users";
+      }
+    });
+
+    document.getElementById('toggleInsertFormBtn').addEventListener('click', () => {
+      const formContainer = document.getElementById("insertUserFormContainer");
+      formVisible = !formVisible;
+      formContainer.hidden = !formVisible;
+      document.getElementById('toggleInsertFormBtn').textContent = formVisible ? "Hide Insert Form" : "Insert New User";
+    });
+
+    document.getElementById('insertUserForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      fetch('api/insert_user.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          const resultDiv = document.getElementById("insertResult");
+          if (data.success) {
+            this.reset();
+            resultDiv.innerHTML = '<div class="success">User inserted successfully.</div>';
+            usersVisible = false;
+            document.getElementById('loadUsersBtn').click();
+          } else {
+            resultDiv.innerHTML = '<div class="error">Error: ' + data.message + '</div>';
+          }
+        });
+    });
+
+    function deleteUser(userId) {
+      if (!confirm("Are you sure you want to delete this user?")) return;
+      fetch('api/delete_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'user_id=' + encodeURIComponent(userId)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('loadUsersBtn').click();
+        } else {
+          alert("Delete failed: " + data.message);
+        }
+      });
+    }
+
+    function showEdit(userId) {
+      const usernameCell = document.getElementById('username-' + userId);
+      const emailCell = document.getElementById('email-' + userId);
+      const username = usernameCell.textContent;
+      const email = emailCell.textContent;
+      usernameCell.innerHTML = `<input type='text' class='edit-input' id='edit-username-${userId}' value='${username}'>`;
+      emailCell.innerHTML = `<input type='email' class='edit-input' id='edit-email-${userId}' value='${email}'>`;
+
+      const row = document.getElementById('user-' + userId);
+      row.querySelector('td:last-child').innerHTML = `
+        <button class="action-btn" onclick="submitEdit(${userId})">Save</button>
+        <button class="action-btn cancel" onclick="document.getElementById('loadUsersBtn').click()">Cancel</button>`;
+    }
+
+    function submitEdit(userId) {
+      const newUsername = document.getElementById('edit-username-' + userId).value;
+      const newEmail = document.getElementById('edit-email-' + userId).value;
+
+      const formData = new URLSearchParams();
+      formData.append('user_id', userId);
+      formData.append('username', newUsername);
+      formData.append('email', newEmail);
+
+      fetch('api/edit_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('loadUsersBtn').click();
+          } else {
+            alert('Edit failed: ' + data.message);
+          }
+        });
+    }
+  </script>
+</body>
+</html>

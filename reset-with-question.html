@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password - Health Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h1>Health Screening Login</h1>
+    <div class="container">
+        <h2>Reset Your Password</h2>
+        <div class="login-container">
+            
+            <div id="message"></div>
+            
+            <form id="resetForm">
+                <div class="form-group">
+                    <label for="secret_question_display" style="font-weight: 500;">Your Secret Question:</label>
+                    <p id="secret_question_display" style="background-color: #f7fafc; padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem;"></p>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="secret_answer" name="secret_answer" placeholder="Your Secret Answer" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="new_password" name="new_password" placeholder="New Password" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm New Password" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Reset Password</button>
+            </form>
+            
+            <p class="signup-link">
+                <a href="index.html">Back to Sign in</a>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('api/get_secret_question.php')
+                .then(response => response.json())
+                .then(data => {
+                    const questionDisplay = document.getElementById('secret_question_display');
+                    if (data.success && data.question) {
+                        questionDisplay.textContent = data.question;
+                    } else {
+                        questionDisplay.textContent = "Could not retrieve question. Please go back and try again.";
+                        document.querySelector('.submit-btn').disabled = true;
+                    }
+                });
+        });
+
+        document.getElementById('resetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const messageDiv = document.getElementById('message');
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            if (newPassword !== confirmPassword) {
+                messageDiv.innerHTML = '<div class="error">New passwords do not match.</div>';
+                return;
+            }
+
+            fetch('api/reset_password.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="success">' + data.message + '</div>';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                } else {
+                    messageDiv.innerHTML = '<div class="error">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                messageDiv.innerHTML = '<div class="error">An error occurred. Please try again.</div>';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html> 

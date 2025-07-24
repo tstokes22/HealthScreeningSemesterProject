@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Health Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-main-row {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+        .dashboard-main-col {
+            flex: 1 1 700px;
+            min-width: 700px;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            background: #f0f0f0;
+            border-radius: 10px;
+            box-shadow: 1px 1px 10px 10px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin-bottom: 0;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .dashboard-main-col h3 {
+            margin-top: 0;
+        }
+        .entries-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .user-table {
+            min-width: 700px;
+            width: 100%;
+        }
+        .dashboard-main-col canvas {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        @media (max-width: 1100px) {
+            .dashboard-main-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .dashboard-main-col {
+                max-width: 100%;
+                min-width: 0;
+            }
+            .user-table {
+                min-width: 0;
+            }
+        }
+        .dashboard-header-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Health Screening Dashboard</h1>
+        </div>
+    </header>
+    
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h2 class="dashboard-title">Welcome, <span class="username-display" id="username">User</span>!</h2>
+            <nav class="dashboard-header-nav">
+                <button id="toggleHealthFormBtn" class="admin-btn secondary">Add Health Screening</button>
+                <a href="api/logout.php" class="logout-btn">Logout</a>
+            </nav>
+        </div>
+
+        <div class="welcome-section" style="max-width: 700px; margin: 2rem auto 2rem auto;">
+            <h2>Health Tracker Dashboard</h2>
+            <p>You have successfully logged in to your health screening account.</p>
+        </div>
+
+        <!-- Health Screening Form -->
+        <div id="healthFormContainer" class="content-section" style="max-width: 500px; margin: 2rem auto; display:none;">
+            <h3>Submit Health Screening</h3>
+            <form id="healthForm">
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="symptoms">Symptoms</label>
+                    <input type="text" id="symptoms" name="symptoms">
+                </div>
+                <div class="form-group">
+                    <label for="temperature">Temperature (°F)</label>
+                    <input type="number" id="temperature" name="temperature" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="blood_pressure">Blood Pressure</label>
+                    <input type="text" id="blood_pressure" name="blood_pressure">
+                </div>
+                <div class="form-group">
+                    <label for="heart_rate">Heart Rate</label>
+                    <input type="number" id="heart_rate" name="heart_rate">
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <input type="text" id="notes" name="notes">
+                </div>
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+            <div id="formResult"></div>
+        </div>
+
+        <!-- Only these two are in the flex row -->
+        <div class="dashboard-main-row">
+            <div class="dashboard-main-col content-section">
+                <h3>Your Health Trends</h3>
+                <canvas id="healthChart" height="100"></canvas>
+            </div>
+            <div class="dashboard-main-col content-section">
+                <h3>Your Past Health Entries</h3>
+                <div class="entries-table-wrapper"><div id="entriesTableContainer"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Session check and username display
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('api/check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.logged_in) {
+                    document.getElementById('username').textContent = data.username;
+                } else {
+                    window.location.href = 'index.html';
+                }
+            })
+            .catch(error => {
+                console.error('Session check failed:', error);
+                window.location.href = 'index.html';
+            });
+    });
+
+    // Toggle health form visibility
+    document.getElementById('toggleHealthFormBtn').addEventListener('click', function() {
+        const formContainer = document.getElementById('healthFormContainer');
+        const isHidden = formContainer.style.display === 'none';
+        formContainer.style.display = isHidden ? 'block' : 'none';
+        this.textContent = isHidden ? 'Hide Health Screening' : 'Add Health Screening';
+    });
+
+    // Handle health form submission
+    document.getElementById('healthForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch('api/insert_form.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            const resultDiv = document.getElementById('formResult');
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="success">Form submitted successfully.</div>';
+                this.reset();
+                loadEntriesAndChart();
+            } else {
+                resultDiv.innerHTML = '<div class="error">' + data.message + '</div>';
+            }
+        })
+        .catch(() => {
+            document.getElementById('formResult').innerHTML = '<div class="error">Submission failed.</div>';
+        });
+    });
+
+    // Load entries and update chart
+    function loadEntriesAndChart() {
+        fetch('api/view_forms.php')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    renderEntriesTable(data.forms);
+                    renderHealthChart(data.forms);
+                } else {
+                    document.getElementById('entriesTableContainer').innerHTML = '<p>No entries found.</p>';
+                }
+            });
+    }
+
+    // Render table of entries
+    function renderEntriesTable(forms) {
+        let html = `<table class='user-table'>
+            <tr>
+                <th>Date</th>
+                <th>Symptoms</th>
+                <th>Temperature (°F)</th>
+                <th>Blood Pressure</th>
+                <th>Heart Rate</th>
+                <th>Notes</th>
+                <th>Created At</th>
+            </tr>`;
+        forms.forEach(form => {
+            html += `<tr>
+                <td>${form.date}</td>
+                <td>${form.symptoms || ''}</td>
+                <td>${form.temperature || ''}</td>
+                <td>${form.blood_pressure || ''}</td>
+                <td>${form.heart_rate || ''}</td>
+                <td>${form.notes || ''}</td>
+                <td>${form.created_at || ''}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('entriesTableContainer').innerHTML = html;
+    }
+
+    // Render Chart.js chart
+    let healthChart;
+    function renderHealthChart(forms) {
+        // Sort by date
+        forms.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const labels = forms.map(f => f.date);
+        const temperatures = forms.map(f => parseFloat(f.temperature) || null);
+        const heartRates = forms.map(f => parseInt(f.heart_rate) || null);
+
+        const datasets = [];
+        if (temperatures.some(v => v !== null)) {
+            datasets.push({
+                label: 'Temperature (°F)',
+                data: temperatures,
+                borderColor: '#ff6384',
+                backgroundColor: 'rgba(255,99,132,0.1)',
+                yAxisID: 'y',
+                spanGaps: true
+            });
+        }
+        if (heartRates.some(v => v !== null)) {
+            datasets.push({
+                label: 'Heart Rate',
+                data: heartRates,
+                borderColor: '#36a2eb',
+                backgroundColor: 'rgba(54,162,235,0.1)',
+                yAxisID: 'y1',
+                spanGaps: true
+            });
+        }
+        if (healthChart) healthChart.destroy();
+        healthChart = new Chart(document.getElementById('healthChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                stacked: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Health Trends Over Time' }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Temperature (°F)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Heart Rate' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initial load
+    loadEntriesAndChart();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Health Tracker</title>
+    <link rel="stylesheet" href="css/style.css?v=1.1">
+    <!-- Chart plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Health Screening Analytics Dashboard</h1>
+        </div>
+    </header>
+    
+    <div class="analytics-container">
+        <div class="analytics-header">
+            <h2 class="analytics-title">Analytics Overview</h2>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="admin_dashboard.html" class="admin-btn secondary">Back to Admin</a>
+                <a href="api/logout.php" class="logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Statistics Cards -->
+            <div class="analytics-stats">
+                <div class="stat-card">
+                    <h3>Total Users</h3>
+                    <p class="stat-value" id="total-users">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Users (24h)</h3>
+                    <p class="stat-value" id="active-users">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Health Entries</h3>
+                    <p class="stat-value" id="total-entries">0</p>
+                </div>
+            </div>
+
+            <!-- Chart Controls -->
+            <div class="chart-controls">
+                <label for="range">Timeframe:</label>
+                <select id="range">
+                    <option value="day" selected>Daily</option>
+                    <option value="week">Weekly</option>
+                    <option value="month">Monthly</option>
+                </select>
+            </div>
+
+            <!-- User Registration Chart -->
+            <div class="chart-container">
+                <h3>User Registration Trends</h3>
+                <div class="chart-wrapper">
+                    <canvas id="chart-day"></canvas>
+                    <canvas id="chart-week" style="display: none;"></canvas>
+                    <canvas id="chart-month" style="display: none;"></canvas>
+                </div>
+            </div>
+
+            <!-- User Activity Pie Chart -->
+            <div class="pie-chart-container">
+                <h3>User Activity Distribution</h3>
+                <div class="pie-chart-wrapper">
+                    <canvas id="userActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            Loading analytics data...
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ctxDay = document.getElementById('chart-day').getContext('2d');
+        const ctxWeek = document.getElementById('chart-week').getContext('2d');
+        const ctxMonth = document.getElementById('chart-month').getContext('2d');
+
+        let charts = {};
+
+        // Helper to create a chart instance
+        function createChart(ctx, label, labels, data) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label,
+                        data,
+                        borderColor: '#005A9C',
+                        backgroundColor: 'rgba(0, 90, 156, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                stepSize: 1,
+                                callback: v => Number.isInteger(v) ? v : null,
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Show only the canvas for selected timeframe
+        function showChart(range) {
+            ['day', 'week', 'month'].forEach(r => {
+                document.getElementById(`chart-${r}`).style.display = (r === range) ? 'block' : 'none';
+            });
+        }
+        
+        let userActivityChart; // Global chart variable
+
+        function createUserActivityChart(active, inactive) {
+            const ctx = document.getElementById('userActivityChart').getContext('2d');
+            if (userActivityChart) userActivityChart.destroy(); // destroy existing chart if exists
+
+            userActivityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active Users', 'Inactive Users'],
+                    datasets: [{
+                        data: [active, inactive],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderColor: ['#218838', '#c82333'],
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'User Activity (Last 24 hours)',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fetch all data at once
+        fetch('api/analytics.php')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('total-users').textContent = data.total_users;
+                document.getElementById('active-users').textContent = data.active_users;
+                document.getElementById('total-entries').textContent = data.total_entries;
+                
+                charts.day = createChart(ctxDay, 'New Users (Daily)', data.user_registrations.day.dates, data.user_registrations.day.counts);
+                charts.week = createChart(ctxWeek, 'New Users (Weekly)', data.user_registrations.week.dates, data.user_registrations.week.counts);
+                charts.month = createChart(ctxMonth, 'New Users (Monthly)', data.user_registrations.month.dates, data.user_registrations.month.counts);
+
+                // Show daily chart initially
+                showChart('day');
+                
+                // Create/display active users pie chart
+                createUserActivityChart(data.active_users, data.inactive_users);
+                
+                // Hide loading and show dashboard
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+            })
+            .catch(err => {
+                console.error('Error loading analytics:', err);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').innerHTML = '<div class="error">Failed to load analytics data. Please try again later.</div>';
+            });
+
+        // Update chart visibility on dropdown change
+        document.getElementById('range').addEventListener('change', e => {
+            showChart(e.target.value);
+        });
+    });
+    </script>
+</body>
+</html>
