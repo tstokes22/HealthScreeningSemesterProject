@@ -1,6 +1,8 @@
-Health Screening & Analytics System
-FSU Computer Science Semester Project
-Project Overview
+## Health Screening & Analytics System
+
+## FSU Computer Science Semester Project
+
+### Project Overview
 
 The Health Screening System is a full-stack web application designed for secure health metric tracking and administrative data oversight. It bridges the gap between patient self-reporting and administrative analytics, providing a robust platform for monitoring health trends across a user base.
 Technical Architecture
