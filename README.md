@@ -1,59 +1,60 @@
 ## Health Screening & Analytics System
 
-## FSU Computer Science Semester Project
+### FSU Computer Science Semester Project
 
-### Project Overview
+# Project Overview
 
 The Health Screening System is a full-stack web application designed for secure health metric tracking and administrative data oversight. It bridges the gap between patient self-reporting and administrative analytics, providing a robust platform for monitoring health trends across a user base.
 Technical Architecture
 
 This project follows a structured Client-Server architecture utilizing the following stack:
 
-    Frontend: Built with responsive HTML5 and CSS3 (using the Inter font family). It leverages the Fetch API for asynchronous communication with the backend, ensuring a smooth, single-page-feel for dashboard interactions.
+Frontend: Built with responsive HTML5 and CSS3. It leverages the Fetch API for asynchronous communication with the backend, ensuring a smooth, single-page-feel for dashboard interactions.
 
-    Backend: Developed in PHP with a modular directory structure (/api, /includes, /css).
+Backend: Developed in PHP with a modular directory structure (/api, /includes, /css).
 
-    Database: MySQL relational database consisting of a users table for credentials and a health_entries table for health data, linked via foreign keys.
+Database: MySQL relational database consisting of a users table for credentials and a health_entries table for health data, linked via foreign keys.
 
-    Data Visualization: Integrated Chart.js to render dynamic line graphs for user health trends and registration analytics.
+Data Visualization: Integrated Chart.js to render dynamic line graphs for user health trends and registration analytics.
 
-Core Features & Logic Implementation
+# Core Features & Logic Implementation
+
 1. Secure Authentication & Session Management
 
-    Hashed Security: Implements password_hash and password_verify for user credentials and secret answers.
+Hashed Security: Implements password_hash and password_verify for user credentials and secret answers.
 
-    Session-Based Guarding: Uses session_start() and custom utility functions (isLoggedIn(), requireAdmin()) to protect sensitive endpoints from unauthorized access.
+Session-Based Guarding: Uses session_start() and custom utility functions (isLoggedIn(), requireAdmin()) to protect sensitive endpoints from unauthorized access.
 
-    Password Recovery: Features a two-step recovery process using Secret Questions and answers persisted in PHP sessions to verify identity before a reset.
+Password Recovery: Features a two-step recovery process using Secret Questions and answers persisted in PHP sessions to verify identity before a reset.
 
 2. Patient Health Tracking
 
-    Metric Logging: A data entry form for symptoms, temperature (°F), blood pressure, and heart rate.
+Metric Logging: A data entry form for symptoms, temperature (°F), blood pressure, and heart rate.
 
-    Dynamic Trends: The system automatically sorts historical data by date and renders a multi-axis line chart using Chart.js to visualize physiological changes over time.
+Dynamic Trends: The system automatically sorts historical data by date and renders a multi-axis line chart using Chart.js to visualize physiological changes over time.
 
 3. Administrative Oversight & Analytics
 
-    Admin Dashboard: Grants administrators the ability to view, insert, edit, and delete user accounts (CRUD operations).
+Admin Dashboard: Grants administrators the ability to view, insert, edit, and delete user accounts (CRUD operations).
 
-    Registration Analytics: Uses complex SQL aggregation (e.g., YEARWEEK and DATE_FORMAT) to generate daily, weekly, and monthly registration reports.
+Registration Analytics: Uses complex SQL aggregation (e.g., YEARWEEK and DATE_FORMAT) to generate daily, weekly, and monthly registration reports.
 
-    Real-time Activity: Monitors user engagement by tracking last_login timestamps and calculating active vs. inactive users within a 24-hour window.
+Real-time Activity: Monitors user engagement by tracking last_login timestamps and calculating active vs. inactive users within a 24-hour window.
 
-Security Best Practices Implemented
+# Security Best Practices Implemented
 
-    SQL Injection Prevention: Every database interaction utilizes Prepared Statements with bind_param to ensure user input is treated as data, not executable code.
+SQL Injection Prevention: Every database interaction utilizes Prepared Statements with bind_param to ensure user input is treated as data, not executable code.
 
-    Unauthorized Access Protection: Admin-specific APIs (delete_user.php, view_users.php) include server-side checks to verify the is_admin session flag before execution.
+Unauthorized Access Protection: Admin-specific APIs (delete_user.php, view_users.php) include server-side checks to verify the is_admin session flag before execution.
 
-    CSRF/Session Security: Implements session_regenerate_id(true) upon login to prevent session fixation attacks.
+CSRF/Session Security: Implements session_regenerate_id(true) upon login to prevent session fixation attacks.
 
-Setup & Local Environment
+# Setup & Local Environment
 
-    Configure Database: Import the schema logic found in setup.php into your MySQL environment.
+Configure Database: Import the schema logic found in setup.php into your MySQL environment.
 
-    Connection Setup: Update includes/db_connect.php with your local host, database name, and credentials.
+Connection Setup: Update includes/db_connect.php with your local host, database name, and credentials.
 
-    Deployment: Place the project directory in a PHP-enabled server environment (e.g., XAMPP/WAMP htdocs).
+Deployment: Place the project directory in a PHP-enabled server environment (e.g., XAMPP/WAMP htdocs).
 
-    Initial Admin: Use the default credentials generated by setup.php (admin / admin123) to access the Analytics Dashboard.
+Initial Admin: Use the default credentials generated by setup.php (admin / admin123) to access the Analytics Dashboard.
